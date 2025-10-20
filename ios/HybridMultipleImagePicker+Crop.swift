@@ -27,7 +27,11 @@ extension HybridMultipleImagePicker {
 
         let cropOption = PickerCropConfig(circle: config.circle, ratio: config.ratio, defaultRatio: config.defaultRatio, freeStyle: config.freeStyle)
 
+        #if HXPICKER_ENABLE_EDITOR
         var editConfig = setCropConfig(cropOption)
+        #else
+        var editConfig = EditorConfiguration()
+        #endif
 
         editConfig.languageType = setLocale(language: config.language)
 
@@ -43,6 +47,7 @@ extension HybridMultipleImagePicker {
         }
     }
 
+    #if HXPICKER_ENABLE_EDITOR
     func setCropConfig(_ cropConfig: PickerCropConfig) -> EditorConfiguration {
         var config = EditorConfiguration()
 
@@ -66,7 +71,10 @@ extension HybridMultipleImagePicker {
 
         config.cropSize.isResetToOriginal = true
 
-        config.toolsView = .init(toolOptions: [.init(imageType: PickerConfiguration.default.editor.imageResource.editor.tools.cropSize, type: .cropSize)])
+        // 使用默认工具栏配置，但隐藏贴纸和配乐按钮
+        config.toolsView = .default
+        // 过滤掉贴纸和配乐按钮
+        config.toolsView.toolOptions = config.toolsView.toolOptions.filter { $0.type != .chartlet && $0.type != .music }
 
         config.photo.defaultSelectedToolOption = .cropSize
 
@@ -96,4 +104,5 @@ extension HybridMultipleImagePicker {
 
         return config
     }
+    #endif
 }

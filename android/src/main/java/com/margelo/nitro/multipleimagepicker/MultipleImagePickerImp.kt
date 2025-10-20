@@ -142,6 +142,11 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
             .isFastSlidingSelect(allowSwipeToSelect)
             .isPageSyncAlbumCount(true)
             // isPreview
+            .setQueryOnlyMimeType(PictureMimeType.ofPNG())
+            .setQueryOnlyMimeType(PictureMimeType.ofJPEG())
+            .setQueryOnlyMimeType(PictureMimeType.ofHeic())
+            .setQueryOnlyMimeType(PictureMimeType.ofMP4())
+            .setQueryOnlyMimeType(PictureMimeType.ofAVI())
             .isPreviewImage(isPreview)
             .isPreviewVideo(isPreview)
             .isDisplayTimeAxis(true)
@@ -171,6 +176,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
 
                 override fun onCancel() {
                     //
+                    rejected(0.0)
                 }
             })
     }
@@ -381,7 +387,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
                 }
 
                 override fun onCancel() {
-//                    rejected(0.0)
+                   rejected(0.0)
                 }
             })
     }
