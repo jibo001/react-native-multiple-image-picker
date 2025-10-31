@@ -25,7 +25,7 @@ import {
   openCropper,
   openPreview,
   openCamera,
-} from '@baronha/react-native-multiple-image-picker'
+} from '@jibo001/react-native-multiple-image-picker'
 import { useImmer } from 'use-immer'
 import { StatusBar } from 'expo-status-bar'
 import {

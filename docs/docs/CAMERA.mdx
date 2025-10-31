@@ -20,13 +20,13 @@ The camera module provides a simple interface for capturing photos and recording
 ## Usage
 
 ```typescript
-import { openCamera } from '@baronha/react-native-multiple-image-picker'
+import { openCamera } from '@jibo001/react-native-multiple-image-picker'
 
 const open = async () => {
   try {
     const response = await openCamera({
       mediaType: 'all',
-      cameraDevice: 'back'
+      cameraDevice: 'back',
     })
     console.log(response)
   } catch (e) {
@@ -38,6 +38,7 @@ const open = async () => {
 ## Configuration Options
 
 ### `mediaType`
+
 Specifies the type of media that can be captured.
 
 ```typescript
@@ -47,6 +48,7 @@ mediaType?: 'video' | 'image' | 'all'
 **Default:** `'all'`
 
 ### `cameraDevice`
+
 Selects which camera to use for capture.
 
 ```typescript
@@ -56,6 +58,7 @@ cameraDevice?: 'front' | 'back'
 **Default:** `'back'`
 
 ### `videoMaximumDuration`
+
 Sets the maximum duration for video recording in seconds.
 
 ```typescript
@@ -65,6 +68,7 @@ videoMaximumDuration?: number
 **Default:** No limit
 
 ### `presentation`
+
 Controls how the camera view is presented (iOS only).
 
 ```typescript
@@ -74,6 +78,7 @@ presentation?: 'fullScreenModal' | 'formSheet'
 **Default:** `'fullScreenModal'`
 
 ### `language`
+
 Sets the interface language.
 
 ```typescript
@@ -81,6 +86,7 @@ language?: Language
 ```
 
 **Supported values:**
+
 - 🌐 `'system'`: System default
 - 🇨🇳 `'zh-Hans'`: Simplified Chinese
 - 🇹🇼 `'zh-Hant'`: Traditional Chinese
@@ -98,6 +104,7 @@ language?: Language
 **Default:** `'system'`
 
 ### `crop`
+
 Enables and configures image cropping after capture.
 
 See details in [Crop Configuration](/config/#crop-)
@@ -167,6 +174,7 @@ interface CameraResult {
 ### Example Response
 
 #### Photo Capture
+
 ```typescript
 {
   path: 'file:///var/mobile/Containers/.../IMG_0123.JPG',
@@ -178,6 +186,7 @@ interface CameraResult {
 ```
 
 #### Video Recording
+
 ```typescript
 {
   path: 'file:///var/mobile/Containers/.../VID_0124.MP4',
@@ -201,59 +210,67 @@ interface CameraResult {
 ## Examples
 
 ### Photo Capture
+
 ```typescript
 const result = await openCamera({
   mediaType: 'image',
-  cameraDevice: 'back'
+  cameraDevice: 'back',
 })
 ```
 
 ### Video Recording
+
 ```typescript
 const result = await openCamera({
   mediaType: 'video',
   videoMaximumDuration: 30,
-  cameraDevice: 'front'
+  cameraDevice: 'front',
 })
 ```
 
 ### With Cropping
+
 ```typescript
 const result = await openCamera({
   mediaType: 'image',
   crop: {
     circle: true,
     ratio: [
-      { title: "Square", width: 1, height: 1 },
-      { title: "Portrait", width: 3, height: 4 }
-    ]
-  }
+      { title: 'Square', width: 1, height: 1 },
+      { title: 'Portrait', width: 3, height: 4 },
+    ],
+  },
 })
 ```
 
 ### Custom UI
+
 ```typescript
 const result = await openCamera({
   color: '#FF6B6B',
   language: 'en',
-  presentation: 'fullScreenModal'
+  presentation: 'fullScreenModal',
 })
 ```
 
 ## Platform Specific Notes
 
 ### iOS
+
 - Supports `presentation` option for modal style
 - Full support for all UI customization options
 
 ### Android
+
 - Maximum 4 custom crop ratios
 - Some UI elements may appear differently
 
 ## Required Permissions
 
 ### iOS
+
 Add to `Info.plist`:
+
 ```xml
 <key>NSCameraUsageDescription</key>
 <string>Camera access is required to take photos and videos</string>
@@ -262,7 +279,9 @@ Add to `Info.plist`:
 ```
 
 ### Android
+
 Add to `AndroidManifest.xml`:
+
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-permission android:name="android.permission.RECORD_AUDIO" />

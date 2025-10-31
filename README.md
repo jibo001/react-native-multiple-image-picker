@@ -51,7 +51,7 @@ Here is a simple usage of the Multiple Image Picker. <br/>
 See more [**Config**](https://nitrogenzlab.github.io/react-native-multiple-image-picker/config)
 
 ```typescript
-import { openPicker, Config } from '@baronha/react-native-multiple-image-picker'
+import { openPicker, Config } from '@jibo001/react-native-multiple-image-picker'
 
 const config: Config = {
   maxSelect: 10,
@@ -100,6 +100,7 @@ const onPicker = async () => {
 [BuyMeACoffee-URL]: https://buymeacoffee.com/baronha
 [Kofi]: https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white
 [Kofi-URL]: https://ko-fi.com/baoha
+
 To keep this library maintained and up-to-date please consider [sponsoring it on GitHub](https://github.com/sponsors/baronha). Or if you are looking for a private support or help in customizing the experience, then reach out to me on Twitter [@\_baronha](https://twitter.com/_baronha).<br/>
 Besides, I also built a product using HXPhotoPicker here, Hope you support:<br/>
 
@@ -121,9 +122,9 @@ Besides, I also built a product using HXPhotoPicker here, Hope you support:<br/>
 
 ## Showcase ✨
 
-List of used applications with `@baronha/react-native-multiple-image-picker`
+List of used applications with `@jibo001/react-native-multiple-image-picker`
 
-Contributions are welcome! If you have an application that uses `@baronha/react-native-multiple-image-picker`, please open a [pull request](/docs/docs/SHOWCASE/showcase.json) to add it to the list.
+Contributions are welcome! If you have an application that uses `@jibo001/react-native-multiple-image-picker`, please open a [pull request](/docs/docs/SHOWCASE/showcase.json) to add it to the list.
 
 See all [**Showcase**](https://nitrogenzlab.github.io/react-native-multiple-image-picker/showcase)
 

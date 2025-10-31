@@ -3,14 +3,18 @@
     "baseUrl": ".",
     "outDir": "./lib",
     "paths": {
-      "@baronha/react-native-multiple-image-picker": ["src"]
+      "@jibo001/react-native-multiple-image-picker": [
+        "src"
+      ]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
-    "lib": ["esnext"],
+    "lib": [
+      "esnext"
+    ],
     "module": "esnext",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,

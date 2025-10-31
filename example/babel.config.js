@@ -10,7 +10,7 @@ module.exports = function (api) {
           extensions: ['.tsx', '.ts', '.js', '.json'],
           alias: {
             // For development, we want to alias the library to the source
-            '@baronha/react-native-multiple-image-picker': path.join(
+            '@jibo001/react-native-multiple-image-picker': path.join(
               __dirname,
               '..',
               'src',

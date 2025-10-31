@@ -1423,9 +1423,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@baronha/react-native-multiple-image-picker@workspace:.":
+"@jibo001/react-native-multiple-image-picker@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@baronha/react-native-multiple-image-picker@workspace:."
+  resolution: "@jibo001/react-native-multiple-image-picker@workspace:."
   dependencies:
     "@react-native/eslint-config": "npm:^0.75.2"
     "@types/jest": "npm:^29.5.12"

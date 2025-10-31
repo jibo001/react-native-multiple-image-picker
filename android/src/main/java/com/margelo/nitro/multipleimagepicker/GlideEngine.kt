@@ -276,6 +276,7 @@ class GlideEngine private constructor() : ImageEngine {
         Glide.with(context)
             .load(url)
             .apply(memoryEfficientOptions)
+            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder) // Add placeholder for images
             .into(imageView)
     }
 
@@ -391,6 +392,7 @@ class GlideEngine private constructor() : ImageEngine {
         Glide.with(context)
             .load(url)
             .apply(memoryEfficientOptions)
+            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder) // Add placeholder for images
             .override(maxWidth, maxHeight)
             .into(imageView)
     }
@@ -421,6 +423,7 @@ class GlideEngine private constructor() : ImageEngine {
             .asBitmap()
             .load(url)
             .apply(memoryEfficientOptions)
+            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder) // Add placeholder for album covers
             .override(1024, 1024) // Increased for very high quality album cover
             .sizeMultiplier(0.5f)
             .transform(CenterCrop(), RoundedCorners(8))
@@ -542,6 +545,7 @@ class GlideEngine private constructor() : ImageEngine {
         Glide.with(context)
             .load(url)
             .apply(memoryEfficientOptions)
+            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder) // Add placeholder for images too
             .override(1024, 1024)
             .centerCrop()
             .into(imageView)

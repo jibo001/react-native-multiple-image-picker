@@ -1,6 +1,6 @@
 {
-  "name": "@jibo/react-native-multiple-image-picker",
-  "version": "2.2.5",
+  "name": "@jibo001/react-native-multiple-image-picker",
+  "version": "2.2.6",
   "description": "� react-native-multiple-image-picker enables applications to pick images and videos from multiple smart albums in iOS/Android �",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -46,7 +46,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NitrogenZLab/react-native-multiple-image-picker.git"
+    "url": "git+https://github.com/jibo001/react-native-multiple-image-picker.git"
   },
   "author": "Bảo Hà. <baronn.ha@gmail.com> (https://github.com/baronha)",
   "license": "MIT",
