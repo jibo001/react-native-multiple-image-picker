@@ -21,10 +21,11 @@ extension HybridMultipleImagePicker {
         if let spacing = options.spacing { photoList.spacing = spacing }
         if let rowNumber = options.numberOfColumn { photoList.rowNumber = Int(rowNumber) }
 
-        if let isHiddenPreviewButton = options.isHiddenPreviewButton {
-            previewView.bottomView.isHiddenPreviewButton = isHiddenPreviewButton
-            photoList.bottomView.isHiddenOriginalButton = isHiddenPreviewButton
-        }
+        // 强制显示预览按钮，忽略isHiddenPreviewButton配置
+        // if let isHiddenPreviewButton = options.isHiddenPreviewButton {
+        //     previewView.bottomView.isHiddenPreviewButton = isHiddenPreviewButton
+        //     photoList.bottomView.isHiddenOriginalButton = isHiddenPreviewButton
+        // }
 
         if let isHiddenOriginalButton = options.isHiddenOriginalButton {
             previewView.bottomView.isHiddenOriginalButton = isHiddenOriginalButton
@@ -40,11 +41,11 @@ extension HybridMultipleImagePicker {
         // check media type
         switch options.mediaType {
         case .image:
-            config.selectOptions = [.photo, .livePhoto, .gifPhoto]
+            config.selectOptions = [.photo, .livePhoto]
         case .video:
             config.selectOptions = .video
         default:
-            config.selectOptions = [.video, .photo, .gifPhoto, .livePhoto]
+            config.selectOptions = [.video, .photo, .livePhoto]
         }
 
         config.indicatorType = .system
@@ -97,8 +98,14 @@ extension HybridMultipleImagePicker {
 
         let isPreview = options.isPreview ?? true
 
+        // 确保底部视图正确显示
+        photoList.bottomView.isShowSelectedView = true
+        previewView.bottomView.isShowSelectedView = true
+        
         previewView.bottomView.isShowPreviewList = isPreview
-        photoList.bottomView.isHiddenPreviewButton = !isPreview
+        // 强制显示预览按钮，不依赖isPreview配置
+        photoList.bottomView.isHiddenPreviewButton = false
+        previewView.bottomView.isHiddenPreviewButton = false
         photoList.allowHapticTouchPreview = isPreview
         photoList.bottomView.previewListTickColor = .clear
         photoList.bottomView.isShowSelectedView = isPreview
@@ -111,13 +118,38 @@ extension HybridMultipleImagePicker {
             config.photoSelectionTapAction = .quickSelect
         }
 
-        config.editorOptions = [.photo, .gifPhoto, .livePhoto]
+        // 强制启用编辑功能
+        config.editorOptions = [.photo, .video, .livePhoto]
+        
+        // 始终显示编辑按钮
+        previewView.bottomView.isHiddenEditButton = false
 
         if let crop = options.crop {
-            config.editor = setCropConfig(crop)
+            #if HXPICKER_ENABLE_EDITOR
+            var editorConfig = setCropConfig(crop)
+            // 强制隐藏贴纸和配乐按钮，保留其他编辑功能
+            editorConfig.toolsView.toolOptions = editorConfig.toolsView.toolOptions.filter { $0.type != .chartlet && $0.type != .music }
+            config.editor = editorConfig
+            #else
+            // 如果没有启用编辑功能，使用默认配置
+            config.editor = EditorConfiguration()
+            #endif
         } else {
-            previewView.bottomView.isHiddenEditButton = true
+            #if HXPICKER_ENABLE_EDITOR
+            // 即使没有crop配置，也启用编辑功能
+            let defaultCropConfig = PickerCropConfig(circle: false, ratio: [], defaultRatio: nil, freeStyle: true)
+            var editorConfig = setCropConfig(defaultCropConfig)
+            // 强制隐藏贴纸和配乐按钮，保留其他编辑功能
+            editorConfig.toolsView.toolOptions = editorConfig.toolsView.toolOptions.filter { $0.type != .chartlet && $0.type != .music }
+            config.editor = editorConfig
+            #else
+            // 如果没有启用编辑功能，使用默认配置
+            config.editor = EditorConfiguration()
+            #endif
         }
+        
+        // 最后再次强制确保贴纸和配乐按钮被隐藏
+        config.editor.toolsView.toolOptions = config.editor.toolsView.toolOptions.filter { $0.type != .chartlet && $0.type != .music }
 
         photoList.finishSelectionAfterTakingPhoto = true
 
@@ -134,6 +166,15 @@ extension HybridMultipleImagePicker {
 
         setLanguage(options)
         setTheme(options)
+
+        // 最后再次强制设置预览和编辑按钮显示，确保不被其他配置覆盖
+        config.previewView.bottomView.isHiddenPreviewButton = false
+        config.photoList.bottomView.isHiddenPreviewButton = false
+        config.previewView.bottomView.isHiddenEditButton = false
+        
+        // 确保底部视图的其他必要配置
+        config.photoList.bottomView.isShowSelectedView = true
+        config.previewView.bottomView.isShowSelectedView = true
 
         config.modalPresentationStyle = setPresentation(options.presentation)
     }

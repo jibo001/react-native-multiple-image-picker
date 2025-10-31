@@ -85,6 +85,7 @@ class HybridMultipleImagePicker: HybridMultipleImagePickerSpec {
 
             } cancel: { cancel in
                 cancel.autoDismiss = true
+                rejected(0.0)
             }
         }
     }

@@ -32,12 +32,16 @@ extension HybridMultipleImagePicker {
 
         cameraConfig.editor.modalPresentationStyle = .fullScreen
 
+        #if HXPICKER_ENABLE_EDITOR
         if let crop = config.crop {
             let editor = PickerCropConfig(circle: crop.circle, ratio: crop.ratio, defaultRatio: crop.defaultRatio, freeStyle: crop.freeStyle)
             cameraConfig.editor = setCropConfig(editor)
         } else {
             cameraConfig.allowsEditing = false
         }
+        #else
+        cameraConfig.allowsEditing = false
+        #endif
 
         cameraConfig.languageType = setLocale(language: config.language)
         cameraConfig.isSaveSystemAlbum = config.isSaveSystemAlbum ?? false
