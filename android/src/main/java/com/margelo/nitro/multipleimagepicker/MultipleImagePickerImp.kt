@@ -57,6 +57,13 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
     private var cropOption = Options()
     private var dataList = mutableListOf<LocalMedia>()
 
+    @ReactMethod
+    fun clearThumbnailCache() {
+        val imageEngine = GlideEngine.createGlideEngine()
+        imageEngine.clearCacheForNewSession()
+        android.util.Log.d("MultipleImagePicker", "Thumbnail cache manually cleared")
+    }
+
 
     @ReactMethod
     fun openPicker(
@@ -67,6 +74,10 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
         PictureAppMaster.getInstance().app = this
         val activity = currentActivity
         val imageEngine = GlideEngine.createGlideEngine()
+
+        // Only clear thumbnail cache if it's a completely new session
+        // Don't clear on every selection to avoid flickering
+        // imageEngine.clearCacheForNewSession()
 
         // set global config
         config = options
@@ -134,7 +145,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
             .setMaxSelectNum(maxSelect)
             .isDirectReturnSingle(true)
             .isSelectZoomAnim(true)
-            .isPageStrategy(true, 50)
+            .isPageStrategy(true, 20)  // Reduced from 50 to 20 to prevent OOM with videos
             .isWithSelectVideoImage(true)
             .setMaxVideoSelectNum(if (maxVideo != 20) maxVideo else maxSelect)
             .isMaxSelectEnabledMask(true)
