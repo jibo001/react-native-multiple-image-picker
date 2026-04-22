@@ -17,6 +17,7 @@
         "NSCameraUsageDescription": "We needs to access your camera so that you can upload your photo: (avatar, etc.)",
         "NSPhotoLibraryAddUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
         "NSPhotoLibraryUsageDescription": "We needs photo library permissions to allow you to upload profile images.",
+        "PHPhotoLibraryPreventAutomaticLimitedAccessAlert": true,
         "NSMicrophoneUsageDescription": "We needs to access your microphone so that you can take your photo: (avatar, etc.)"
       },
       "bundleIdentifier": "com.baoha.imagepicker"

@@ -1,10 +1,12 @@
 package com.margelo.nitro.multipleimagepicker
 
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.ColorPropConverter
@@ -14,6 +16,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.luck.picture.lib.app.IApp
 import com.luck.picture.lib.app.PictureAppMaster
 import com.luck.picture.lib.basic.PictureSelector
+import com.luck.picture.lib.config.SelectorProviders
 import com.luck.picture.lib.config.PictureMimeType
 import com.luck.picture.lib.config.SelectMimeType
 import com.luck.picture.lib.config.SelectModeConfig
@@ -22,6 +25,7 @@ import com.luck.picture.lib.entity.LocalMedia
 import com.luck.picture.lib.interfaces.OnCustomLoadingListener
 import com.luck.picture.lib.interfaces.OnExternalPreviewEventListener
 import com.luck.picture.lib.interfaces.OnMediaEditInterceptListener
+import com.luck.picture.lib.interfaces.OnQueryFilterListener
 import com.luck.picture.lib.interfaces.OnResultCallbackListener
 import com.luck.picture.lib.language.LanguageConfig
 import com.luck.picture.lib.style.BottomNavBarStyle
@@ -39,7 +43,7 @@ import com.yalantis.ucrop.model.AspectRatio
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-
+import java.util.Locale
 
 class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
     ReactContextBaseJavaModule(reactContext), IApp {
@@ -56,6 +60,8 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
     private lateinit var config: NitroConfig
     private var cropOption = Options()
     private var dataList = mutableListOf<LocalMedia>()
+    private var isLimitedPhotoAccessMode = false
+    private var isPermissionEntryMode = false
 
     @ReactMethod
     fun clearThumbnailCache() {
@@ -82,10 +88,14 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
         // set global config
         config = options
 
+        val chooseMode = getChooseMode(config.mediaType)
+        val effectiveLanguage = resolveLanguage(config.language)
+        isLimitedPhotoAccessMode = isLimitedPhotoAccess(chooseMode)
+        val hasNoMediaPermission = hasNoMediaAccessPermission(chooseMode)
+        isPermissionEntryMode = isLimitedPhotoAccessMode || hasNoMediaPermission
+
         setStyle() // set style for UI
         handleSelectedAssets(config)
-
-        val chooseMode = getChooseMode(config.mediaType)
 
         val maxSelect = config.maxSelect?.toInt() ?: 20
         val maxVideo = config.maxVideo?.toInt() ?: 20
@@ -96,6 +106,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
         val allowSwipeToSelect = config.allowSwipeToSelect ?: false
         val isMultiple = config.selectMode == SelectMode.MULTIPLE
         val selectMode = if (isMultiple) SelectModeConfig.MULTIPLE else SelectModeConfig.SINGLE
+        val pageSize = if (isPermissionEntryMode) 36 else 20
 
         val isCrop = config.crop != null
 
@@ -104,7 +115,43 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
             .setImageEngine(imageEngine)
             .setSelectedData(dataList)
             .setSelectorUIStyle(style)
+            .setLoaderFactoryEngine {
+                LocalizedMediaLoader(
+                    appContext,
+                    SelectorProviders.getInstance().selectorConfig,
+                    effectiveLanguage
+                )
+            }
+            .setQueryFilterListener(OnQueryFilterListener { media ->
+                shouldFilterMediaForLimitedAccess(media)
+            })
             .apply {
+                if (isLimitedPhotoAccessMode) {
+                    setPermissionsInterceptListener(LimitedAccessPermissionInterceptor(appContext))
+                    setCameraInterceptListener(
+                        LimitedAccessPhotoPermissionEngine(
+                            appContext,
+                            chooseMode
+                        )
+                    )
+                    if (chooseMode == SelectMimeType.ofAll()) {
+                        // Avoid PictureSelector's image/video choice dialog before limited-library picker.
+                        setOfAllCameraType(SelectMimeType.ofImage())
+                    }
+                }
+                if (!isLimitedPhotoAccessMode && hasNoMediaPermission) {
+                    setPermissionsInterceptListener(LimitedAccessPermissionInterceptor(appContext))
+                    setCameraInterceptListener(
+                        LimitedAccessPhotoPermissionEngine(
+                            appContext,
+                            chooseMode
+                        )
+                    )
+                    if (chooseMode == SelectMimeType.ofAll()) {
+                        // Avoid PictureSelector's image/video choice dialog before permission sheet.
+                        setOfAllCameraType(SelectMimeType.ofImage())
+                    }
+                }
                 if (isCrop) {
                     setCropOption(config.crop)
                     // Disabled force crop engine for multiple
@@ -123,9 +170,9 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
                     setFilterMaxFileSize(it)
                 }
 
-                isDisplayCamera(config.camera != null)
+                isDisplayCamera(config.camera != null || isPermissionEntryMode)
 
-                config.camera?.let {
+                if (!isPermissionEntryMode) config.camera?.let {
                     val cameraConfig = NitroCameraConfig(
                         mediaType = MediaType.ALL,
                         presentation = Presentation.FULLSCREENMODAL,
@@ -139,13 +186,17 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
 
                     setCameraInterceptListener(CameraEngine(appContext, cameraConfig))
                 }
+
+                getDefaultAlbumName(effectiveLanguage, chooseMode)?.let {
+                    setDefaultAlbumName(it)
+                }
             }
             .setVideoThumbnailListener(VideoThumbnailEngine(getVideoThumbnailDir()))
             .setImageSpanCount(config.numberOfColumn?.toInt() ?: 3)
             .setMaxSelectNum(maxSelect)
             .isDirectReturnSingle(true)
             .isSelectZoomAnim(true)
-            .isPageStrategy(true, 20)  // Reduced from 50 to 20 to prevent OOM with videos
+            .isPageStrategy(true, pageSize)
             .isWithSelectVideoImage(true)
             .setMaxVideoSelectNum(if (maxVideo != 20) maxVideo else maxSelect)
             .isMaxSelectEnabledMask(true)
@@ -169,7 +220,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
                 override fun onResult(localMedia: ArrayList<LocalMedia?>?) {
                     var data: Array<PickerResult> = arrayOf()
                     if (localMedia?.size == 0 || localMedia == null) {
-                        resolved(arrayOf())
+                        dispatchPickerResultAfterDismiss(arrayOf(), resolved)
                         return
                     }
 
@@ -182,7 +233,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
                             data += media  // Add the media to the data array
                         }
                     }
-                    resolved(data)
+                    dispatchPickerResultAfterDismiss(data, resolved)
                 }
 
                 override fun onCancel() {
@@ -422,7 +473,7 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
 
 
     private fun getLanguage(language: Language): Int {
-        return when (language) {
+        return when (resolveLanguage(language)) {
             Language.VI -> LanguageConfig.VIETNAM  // -> 🇻🇳 My country. Yeahhh
             Language.EN -> LanguageConfig.ENGLISH
             Language.ZH_HANS -> LanguageConfig.CHINESE
@@ -434,6 +485,62 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
             Language.AR -> LanguageConfig.AR
             Language.RU -> LanguageConfig.RU
             else -> LanguageConfig.SYSTEM_LANGUAGE
+        }
+    }
+
+    private fun resolveLanguage(language: Language): Language {
+        if (language != Language.SYSTEM) {
+            return language
+        }
+        val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            appContext.resources.configuration.locales[0]
+        } else {
+            @Suppress("DEPRECATION")
+            appContext.resources.configuration.locale
+        }
+        return mapLocaleToLanguage(locale)
+    }
+
+    private fun mapLocaleToLanguage(locale: Locale): Language {
+        val lang = locale.language.lowercase(Locale.ROOT)
+        val script = locale.script.lowercase(Locale.ROOT)
+        val country = locale.country.uppercase(Locale.ROOT)
+
+        return when (lang) {
+            "zh" -> {
+                val isTraditional =
+                    script == "hant" || country == "TW" || country == "HK" || country == "MO"
+                if (isTraditional) Language.ZH_HANT else Language.ZH_HANS
+            }
+
+            "ja" -> Language.JA
+            "ko" -> Language.KO
+            "fr" -> Language.FR
+            "de" -> Language.DE
+            "ru" -> Language.RU
+            "ar" -> Language.AR
+            "vi" -> Language.VI
+            "en" -> Language.EN
+            else -> Language.SYSTEM
+        }
+    }
+
+    private fun getDefaultAlbumName(language: Language, chooseMode: Int): String? {
+        val effectiveLanguage = resolveLanguage(language)
+        return when (effectiveLanguage) {
+            Language.ZH_HANS -> when (chooseMode) {
+                SelectMimeType.ofAll() -> "图片和视频"
+                SelectMimeType.ofImage() -> "照片"
+                SelectMimeType.ofVideo() -> "视频"
+                else -> null
+            }
+            Language.ZH_HANT -> when (chooseMode) {
+                SelectMimeType.ofAll() -> "圖片和影片"
+                SelectMimeType.ofImage() -> "照片"
+                SelectMimeType.ofVideo() -> "影片"
+                else -> null
+            }
+            else -> null
         }
     }
 
@@ -540,9 +647,10 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
         bottomBar.bottomEditorTextColor = foreground
         bottomBar.bottomOriginalTextColor = foreground
         bottomBar.bottomPreviewNarBarBackgroundColor = background
+        bottomBar.bottomOriginalDrawableLeft = R.drawable.original_checkbox_selector
 
         mainStyle.mainListBackgroundColor = foreground
-        mainStyle.selectNormalTextColor = foreground
+        mainStyle.selectNormalTextColor = Color.parseColor("#99FFFFFF")
         mainStyle.isDarkStatusBarBlack = !isDark
         mainStyle.statusBarColor = background
         mainStyle.mainListBackgroundColor = background
@@ -564,14 +672,24 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
         mainStyle.isAdapterItemIncludeEdge = true
         mainStyle.isPreviewSelectRelativeBottom = false
 //        mainStyle.previewSelectTextSize = Constant.TOOLBAR_TEXT_SIZE
-        mainStyle.selectTextColor = primaryColor
+        mainStyle.selectTextColor = Color.WHITE
 //        mainStyle.selectTextSize = Constant.TOOLBAR_TEXT_SIZE
         mainStyle.selectBackground = selectType
         mainStyle.isSelectNumberStyle = isNumber
         mainStyle.previewSelectBackground = selectType
         mainStyle.isPreviewSelectNumberStyle = isNumber
 
-        if (config.camera != null) {
+        if (isPermissionEntryMode) {
+            if (isLimitedPhotoAccessMode) {
+                mainStyle.adapterCameraText = getAddMorePhotosText(config.language)
+                mainStyle.adapterCameraDrawableTop = R.drawable.ic_wechat_add_more
+                mainStyle.adapterCameraTextColor = Color.parseColor("#B8B8B8")
+                mainStyle.adapterCameraTextSize = 13
+            } else {
+                mainStyle.adapterCameraText = getGrantPhotoAccessText(config.language)
+                mainStyle.adapterCameraDrawableTop = R.drawable.ic_add_photo_access
+            }
+        } else if (config.camera != null) {
             // hide title camera
             mainStyle.adapterCameraText = " "
         }
@@ -667,5 +785,131 @@ class MultipleImagePickerImp(reactContext: ReactApplicationContext?) :
 
     override fun getPictureSelectorEngine(): PictureSelectorEngine {
         return PictureSelectorEngineImp()
+    }
+
+    private fun isLimitedPhotoAccess(chooseMode: Int): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return false
+        }
+        if (appContext.applicationInfo.targetSdkVersion < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return false
+        }
+        val hasVisualSelectedPermission = ContextCompat.checkSelfPermission(
+            appContext,
+            android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasVisualSelectedPermission) {
+            return false
+        }
+
+        val hasImagePermission = ContextCompat.checkSelfPermission(
+            appContext,
+            android.Manifest.permission.READ_MEDIA_IMAGES
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasVideoPermission = ContextCompat.checkSelfPermission(
+            appContext,
+            android.Manifest.permission.READ_MEDIA_VIDEO
+        ) == PackageManager.PERMISSION_GRANTED
+
+        return when (chooseMode) {
+            SelectMimeType.ofImage() -> !hasImagePermission
+            SelectMimeType.ofVideo() -> !hasVideoPermission
+            SelectMimeType.ofAll() -> !(hasImagePermission && hasVideoPermission)
+            else -> false
+        }
+    }
+
+    private fun hasNoMediaAccessPermission(chooseMode: Int): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasVisualSelectedPermission =
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                    appContext.applicationInfo.targetSdkVersion >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                    ContextCompat.checkSelfPermission(
+                        appContext,
+                        android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                    ) == PackageManager.PERMISSION_GRANTED
+
+            val hasImagePermission = ContextCompat.checkSelfPermission(
+                appContext,
+                android.Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasVideoPermission = ContextCompat.checkSelfPermission(
+                appContext,
+                android.Manifest.permission.READ_MEDIA_VIDEO
+            ) == PackageManager.PERMISSION_GRANTED
+
+            return when (chooseMode) {
+                SelectMimeType.ofImage() -> !(hasImagePermission || hasVisualSelectedPermission)
+                SelectMimeType.ofVideo() -> !(hasVideoPermission || hasVisualSelectedPermission)
+                SelectMimeType.ofAll() -> !(hasVisualSelectedPermission || hasImagePermission || hasVideoPermission)
+                else -> false
+            }
+        }
+
+        val hasReadExternalStorage = ContextCompat.checkSelfPermission(
+            appContext,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED
+        return !hasReadExternalStorage
+    }
+
+    private fun shouldFilterMediaForLimitedAccess(media: LocalMedia): Boolean {
+        val isLimitedNow = isLimitedPhotoAccess(getChooseMode(config.mediaType))
+        if (!isLimitedNow) {
+            return false
+        }
+        val path = media.availablePath ?: media.path ?: return false
+        if (!path.startsWith("content://")) {
+            return false
+        }
+
+        val isReadable = try {
+            appContext.contentResolver.openFileDescriptor(Uri.parse(path), "r")?.use {
+                true
+            } ?: false
+        } catch (_: SecurityException) {
+            false
+        } catch (_: Exception) {
+            false
+        }
+        return !isReadable
+    }
+
+    private fun getAddMorePhotosText(language: Language): String {
+        config.text?.addMore?.trim()?.takeIf { it.isNotEmpty() }?.let {
+            return it
+        }
+        return when (resolveLanguage(language)) {
+            Language.ZH_HANS -> "添加更多\n可访问照片"
+            Language.ZH_HANT -> "新增更多\n可存取照片"
+            Language.JA -> "さらに追加\nアクセス可能な写真"
+            Language.KO -> "더 추가\n접근 가능한 사진"
+            Language.FR -> "Ajouter plus\nde photos"
+            Language.DE -> "Mehr\nFotos"
+            else -> "Add More\nAccessible Photos"
+        }
+    }
+
+    private fun getGrantPhotoAccessText(language: Language): String {
+        return when (resolveLanguage(language)) {
+            Language.ZH_HANS -> "授权访问"
+            Language.ZH_HANT -> "授權存取"
+            Language.JA -> "アクセス許可"
+            Language.KO -> "접근 허용"
+            Language.FR -> "Autoriser"
+            Language.DE -> "Zugriff"
+            else -> "Allow Access"
+        }
+    }
+
+    private fun dispatchPickerResultAfterDismiss(
+        result: Array<PickerResult>,
+        resolved: (result: Array<PickerResult>) -> Unit
+    ) {
+        currentActivity?.window?.decorView?.postDelayed(
+            { resolved(result) },
+            180L
+        ) ?: resolved(result)
     }
 }

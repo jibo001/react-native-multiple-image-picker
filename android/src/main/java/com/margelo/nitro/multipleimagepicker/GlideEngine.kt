@@ -435,10 +435,19 @@ class GlideEngine private constructor() : ImageEngine {
             return
         }
 
+        // Avoid rebinding the same resource to prevent visible flicker after permission dialog closes.
+        // If drawable is null, force reload so placeholder/loader can appear again.
+        val currentTag = imageView.tag as? String
+        if (currentTag == url && imageView.drawable != null) {
+            android.util.Log.d("GlideEngine", "Grid ImageView already showing URL: $url, skipping reload")
+            return
+        }
+
         // CACHE FIRST: If we have a cached thumbnail, use it immediately
         val cachedThumbnail = thumbnailCache[url]
         if (cachedThumbnail != null) {
             android.util.Log.d("GlideEngine", "Using cached thumbnail: $url")
+            imageView.tag = url
             imageView.setImageBitmap(cachedThumbnail)
             return
         }
@@ -450,12 +459,14 @@ class GlideEngine private constructor() : ImageEngine {
             // Check if we're already generating this thumbnail
             if (generatingUrls.contains(url)) {
                 android.util.Log.d("GlideEngine", "Thumbnail already generating for: $url, showing placeholder")
+                imageView.tag = url
                 imageView.setImageResource(com.luck.picture.lib.R.drawable.ps_image_placeholder)
                 return
             }
 
             // Mark as generating
             generatingUrls.add(url)
+            imageView.tag = url
 
             // Always set placeholder first
             imageView.setImageResource(com.luck.picture.lib.R.drawable.ps_image_placeholder)
@@ -518,10 +529,12 @@ class GlideEngine private constructor() : ImageEngine {
                             manageCacheSize()
 
                             // SIMPLIFIED: Always try to set the thumbnail
-                            // RecyclerView reuse is handled by caching
+                            // Only set if this ImageView is still mapped to the same URL.
                             try {
-                                imageView.setImageBitmap(thumbnail)
-                                android.util.Log.d("GlideEngine", "Successfully set generated thumbnail: $url")
+                                if (imageView.tag == url) {
+                                    imageView.setImageBitmap(thumbnail)
+                                    android.util.Log.d("GlideEngine", "Successfully set generated thumbnail: $url")
+                                }
                             } catch (e: Exception) {
                                 android.util.Log.e("GlideEngine", "Failed to set thumbnail to ImageView: ${e.message}")
                             }
@@ -542,10 +555,13 @@ class GlideEngine private constructor() : ImageEngine {
 
         // Load images with Glide
         android.util.Log.d("GlideEngine", "Loading image with Glide: $url")
+        imageView.tag = url
         Glide.with(context)
             .load(url)
             .apply(memoryEfficientOptions)
-            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder) // Add placeholder for images too
+            .placeholder(com.luck.picture.lib.R.drawable.ps_image_placeholder)
+            .error(com.luck.picture.lib.R.drawable.ps_image_placeholder)
+            .dontAnimate()
             .override(1024, 1024)
             .centerCrop()
             .into(imageView)

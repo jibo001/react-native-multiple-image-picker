@@ -87,6 +87,8 @@ Open your project's `Info.plist` and add the following lines inside the outermos
 <string>$(PRODUCT_NAME) needs photo library permissions</string>
 <key>NSPhotoLibraryUsageDescription</key>
 <string>$(PRODUCT_NAME) needs photo library permissions</string>
+<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+<true/>
 <!--  if you allow camera, you need to add this:-->
 <key>NSCameraUsageDescription</key>
 <string>$(PRODUCT_NAME) needs to access your Camera</string>
@@ -109,6 +111,7 @@ Config your Expo app (`app.json`, `app.config.json` or `app.config.js`):
     "infoPlist": {
       "NSPhotoLibraryAddUsageDescription": "$(PRODUCT_NAME) needs photo library permissions",
       "NSPhotoLibraryUsageDescription": "$(PRODUCT_NAME) needs photo library permissions",
+      "PHPhotoLibraryPreventAutomaticLimitedAccessAlert": true,
       // if you allow camera, you need to add this
       "NSCameraUsageDescription": "$(PRODUCT_NAME) needs to access your Camera",
       "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs to access your microphone so that you can record audio"

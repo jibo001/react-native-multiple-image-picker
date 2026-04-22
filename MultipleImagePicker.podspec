@@ -37,6 +37,12 @@ Pod::Spec.new do |s|
     "GCC_PREPROCESSOR_DEFINITIONS" => "$(inherited) FOLLY_NO_CONFIG FOLLY_CFG_NO_COROUTINES FOLLY_MOBILE"
   }
 
+  # Prevent iOS from automatically showing the "Select More Photos..." limited-access alert
+  # as soon as Photo Library is accessed. We expose an explicit "Add More" entry instead.
+  s.user_target_xcconfig = {
+    "INFOPLIST_KEY_PHPhotoLibraryPreventAutomaticLimitedAccessAlert" => "YES"
+  }
+
   if ENV["USE_FRAMEWORKS"]
     s.dependency "React-Core"
     add_dependency(s, "React-jsinspector", :framework_name => "jsinspector_modern")

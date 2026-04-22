@@ -21,6 +21,8 @@ export interface Text {
   preview?: string
   /** Text for edit button */
   edit?: string
+  /** Text for limited-library "add more accessible photos" entry */
+  addMore?: string
 }
 
 /**
@@ -179,6 +181,7 @@ export interface NitroConfig {
    * @property {string} [original] - Label for the original button
    * @property {string} [preview] - Label for the preview button
    * @property {string} [edit] - Label for the edit button
+   * @property {string} [addMore] - Label for add more accessible photos entry
    *
    * @example
    * ```ts
@@ -186,7 +189,8 @@ export interface NitroConfig {
    *   finish: 'Complete',
    *   original: 'Original',
    *   preview: 'Preview',
-   *   edit: 'Edit'
+   *   edit: 'Edit',
+   *   addMore: 'Add More\\nAccessible Photos'
    * }
    * ```
    *

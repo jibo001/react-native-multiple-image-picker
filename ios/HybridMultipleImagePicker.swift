@@ -13,6 +13,7 @@ class HybridMultipleImagePicker: HybridMultipleImagePickerSpec {
     var selectedAssets: [PhotoAsset] = .init()
 
     var config: PickerConfiguration = .init()
+    private var legacyStatusBarStyleBeforePicker: UIStatusBarStyle?
 
     func openPicker(config: NitroConfig, resolved: @escaping (([PickerResult]) -> Void), rejected: @escaping ((Double) -> Void)) throws {
         setConfig(config)
@@ -25,6 +26,7 @@ class HybridMultipleImagePicker: HybridMultipleImagePickerSpec {
         }
 
         DispatchQueue.main.async {
+            self.prepareStatusBarForPickerPresentation()
             Photo.picker(
                 self.config,
                 selectedAssets: self.selectedAssets
@@ -45,7 +47,9 @@ class HybridMultipleImagePicker: HybridMultipleImagePickerSpec {
 
                                 DispatchQueue.main.async {
                                     resolved([resultData])
-                                    controller.dismiss(true)
+                                    controller.dismiss(true) {
+                                        self.restoreStatusBarAfterPickerDismissal()
+                                    }
                                 }
                             }
                         }
@@ -77,17 +81,55 @@ class HybridMultipleImagePicker: HybridMultipleImagePickerSpec {
 
                     DispatchQueue.main.async {
                         alert.dismiss(animated: true) {
-                            controller.dismiss(true)
-                            resolved(data)
+                            controller.dismiss(true) {
+                                self.restoreStatusBarAfterPickerDismissal()
+                                resolved(data)
+                            }
                         }
                     }
                 }
 
             } cancel: { cancel in
                 cancel.autoDismiss = true
+                self.restoreStatusBarAfterPickerDismissal()
                 rejected(0.0)
             }
         }
+    }
+
+    private func prepareStatusBarForPickerPresentation() {
+        applyLegacyStatusBarStyleIfNeeded(.lightContent)
+        getTopViewController()?.setNeedsStatusBarAppearanceUpdate()
+    }
+
+    private func restoreStatusBarAfterPickerDismissal() {
+        restoreLegacyStatusBarStyleIfNeeded()
+        getTopViewController()?.setNeedsStatusBarAppearanceUpdate()
+    }
+
+    private func isViewControllerBasedStatusBarAppearanceEnabled() -> Bool {
+        if let value = Bundle.main.object(forInfoDictionaryKey: "UIViewControllerBasedStatusBarAppearance") as? Bool {
+            return value
+        }
+        return true
+    }
+
+    private func applyLegacyStatusBarStyleIfNeeded(_ style: UIStatusBarStyle) {
+        guard !isViewControllerBasedStatusBarAppearanceEnabled() else {
+            return
+        }
+        legacyStatusBarStyleBeforePicker = UIApplication.shared.statusBarStyle
+        UIApplication.shared.statusBarStyle = style
+    }
+
+    private func restoreLegacyStatusBarStyleIfNeeded() {
+        guard !isViewControllerBasedStatusBarAppearanceEnabled() else {
+            return
+        }
+        if let previousStyle = legacyStatusBarStyleBeforePicker {
+            UIApplication.shared.statusBarStyle = previousStyle
+        }
+        legacyStatusBarStyleBeforePicker = nil
     }
 }
 

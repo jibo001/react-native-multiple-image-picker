@@ -1,7 +1,7 @@
 {
   "name": "@jibo001/react-native-multiple-image-picker",
   "version": "2.2.7",
-  "description": "� react-native-multiple-image-picker enables applications to pick images and videos from multiple smart albums in iOS/Android �",
+  "description": "react-native-multiple-image-picker enables applications to pick images and videos from multiple smart albums in iOS/Android �",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/index.d.ts",
