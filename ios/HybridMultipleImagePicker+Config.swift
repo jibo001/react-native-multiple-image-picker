@@ -21,6 +21,11 @@ extension HybridMultipleImagePicker {
         let isLimitedLibraryAccess = self.isLimitedPhotoLibraryAccess()
         let shouldLoadPhotoLibraryImmediately = self.shouldLoadPhotoLibraryImmediately()
 
+        // iOS 26+: HXPhotoPicker may switch to a glass-style title view whose titleColor is
+        // not applied consistently. Force the classic title view so the configured title color
+        // (white in our theme) is honored.
+        photoList.navigationTitle = AlbumTitleView.self
+
         // Do not trigger photo-library permission prompt on first entry.
         // Permission will be requested only when user takes an explicit action.
         config.allowLoadPhotoLibrary = shouldLoadPhotoLibraryImmediately
@@ -295,7 +300,11 @@ extension HybridMultipleImagePicker {
         // Keep picker status bar icons white while presenting the picker.
         // When picker dismisses, iOS restores the host page status bar automatically.
         config.statusBarStyle = .lightContent
+        // Avoid UINavigationBarAppearance adaptive overrides on re-open, which can
+        // cause navigation title color to flip back to black on newer iOS versions.
+        config.adaptiveBarAppearance = false
         config.navigationTitleColor = .white
+        config.navigationTitleDarkColor = .white
         config.photoList.cell.customSelectableCellClass = nil
     }
 
